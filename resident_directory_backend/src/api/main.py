@@ -1,7 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 
 from src.api.core.config import get_settings
+from src.api.db.session import SessionLocal
 from src.api.routers import (
     admin_router,
     announcements_router,
@@ -45,6 +47,25 @@ app.add_middleware(
 def health_check():
     """Health check endpoint for uptime monitoring."""
     return {"message": "Healthy"}
+
+
+@app.get("/health/db", summary="Database connectivity health check", tags=["auth"])
+# PUBLIC_INTERFACE
+def db_health_check():
+    """Check that the API can connect to the configured Postgres database.
+
+    This is a simple operational endpoint to validate that the backend can
+    reach the database container using the configured POSTGRES_URL.
+
+    Returns:
+        JSON object with ok=true if a trivial query succeeds.
+    """
+    db = SessionLocal()
+    try:
+        db.execute(text("SELECT 1"))
+        return {"ok": True}
+    finally:
+        db.close()
 
 
 @app.get("/docs/auth", summary="Auth usage help", tags=["auth"])
